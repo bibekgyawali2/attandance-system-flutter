@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+
 import '../databse/student_database.dart';
 
 class DatabaseHelper {
@@ -9,10 +10,10 @@ class DatabaseHelper {
     // Retrieve all students from the database
     List<Student> students = await StudentDatabase.instance.getAllStudents();
 
-    // For simplicity, this example compares facial landmarks. You may want to use a more advanced method.
+    // Loop through each stored student and compare their facial landmarks
     for (Student student in students) {
       if (_compareFacialLandmarks(detectedFace, student.facialLandmarks)) {
-        // If the face matches, return the student's data
+        // If a match is found, return the student's data
         return {
           'studentId': student.studentId,
           'name': student.name,
@@ -23,7 +24,7 @@ class DatabaseHelper {
     return null; // No match found
   }
 
-  // Simple landmark comparison method (this can be enhanced)
+  // Improved comparison method using Euclidean distance
   static bool _compareFacialLandmarks(
       Face detectedFace, List<Point<int>> storedLandmarks) {
     // Extract the detected face's landmarks
@@ -36,16 +37,35 @@ class DatabaseHelper {
 
     // Check if both have the same number of landmarks
     if (detectedLandmarks.length != storedLandmarks.length) {
+      print(":::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::");
+      print(detectedLandmarks);
       return false;
     }
 
-    // Compare landmarks (this is just a basic comparison, improve as needed)
+    // Define a threshold for Euclidean distance (tolerance for "similar" points)
+    const double distanceThreshold = 400.0;
+
+    // Compare each corresponding landmark by calculating the Euclidean distance
     for (int i = 0; i < detectedLandmarks.length; i++) {
-      if (detectedLandmarks[i] != storedLandmarks[i]) {
+      double distance =
+          _calculateEuclideanDistance(detectedLandmarks[i], storedLandmarks[i]);
+
+      // If the distance between landmarks exceeds the threshold, return false
+      if (distance > distanceThreshold) {
+        print("====================================");
+        print(detectedLandmarks);
+        print("====================================");
+        print(storedLandmarks);
         return false;
       }
     }
 
-    return true; // The landmarks match
+    return true; // Landmarks are considered similar if all distances are within the threshold
+  }
+
+  // Method to calculate Euclidean distance between two points
+  static double _calculateEuclideanDistance(
+      Point<int> point1, Point<int> point2) {
+    return sqrt(pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2));
   }
 }
